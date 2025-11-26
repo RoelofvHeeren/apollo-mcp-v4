@@ -1,10 +1,11 @@
 FROM node:22.12-alpine AS builder
-
-COPY . /app
-
 WORKDIR /app
 
-RUN npm install
+# Install dependencies with cache-friendly layering and build the project
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
 
 FROM node:22-alpine AS release
 
