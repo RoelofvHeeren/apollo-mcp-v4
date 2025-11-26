@@ -38,6 +38,10 @@ export interface PeopleEnrichmentQuery {
   [key: string]: any;
 }
 
+export interface BulkPeopleEnrichmentPayload {
+  requests: PeopleEnrichmentQuery[];
+}
+
 export interface OrganizationEnrichmentQuery {
   domain?: string;
   name?: string;
@@ -101,6 +105,34 @@ export class ApolloClient {
       console.log('query', query);
       const response = await this.axiosInstance.post(url, query);
       
+      if (response.status === 200) {
+        return response.data;
+      } else {
+        console.error(`Error: ${response.status} - ${response.statusText}`);
+        return null;
+      }
+    } catch (error: any) {
+      console.error(`Error: ${error.response?.status} - ${error.response?.statusText || error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Bulk People Enrichment (up to 10 records per request).
+   * https://docs.apollo.io/reference/bulk-people-enrichment
+   */
+  async bulkPeopleEnrichment(payload: BulkPeopleEnrichmentPayload): Promise<any> {
+    try {
+      if (!payload?.requests?.length) {
+        throw new Error('At least one request is required');
+      }
+      if (payload.requests.length > 10) {
+        throw new Error('Maximum 10 requests per bulk call');
+      }
+
+      const url = `${this.baseUrl}/bulk_people_enrichment`;
+      const response = await this.axiosInstance.post(url, payload);
+
       if (response.status === 200) {
         return response.data;
       } else {

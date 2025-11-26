@@ -8,7 +8,7 @@ import {
   McpError,
   Tool
 } from '@modelcontextprotocol/sdk/types.js';
-import { ApolloClient } from './apollo-client.js';
+import { ApolloClient, BulkPeopleEnrichmentPayload } from './apollo-client.js';
 import dotenv from 'dotenv';
 import { parseArgs } from 'node:util';
 
@@ -107,6 +107,31 @@ class ApolloServer {
                 description: "Person's LinkedIn profile URL"
               }
             }
+          }
+        },
+        {
+          name: 'bulk_people_enrichment',
+          description: 'Bulk enrich up to 10 people in a single request',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              requests: {
+                type: 'array',
+                maxItems: 10,
+                items: {
+                  type: 'object',
+                  properties: {
+                    first_name: { type: 'string', description: "Person's first name" },
+                    last_name: { type: 'string', description: "Person's last name" },
+                    email: { type: 'string', description: "Person's email address" },
+                    domain: { type: 'string', description: 'Company domain' },
+                    organization_name: { type: 'string', description: 'Organization name' },
+                    linkedin_url: { type: 'string', description: "Person's LinkedIn profile URL" }
+                  }
+                }
+              }
+            },
+            required: ['requests']
           }
         },
         {
@@ -251,6 +276,20 @@ class ApolloServer {
           
           case 'people_search': {
             const result = await this.apollo.peopleSearch(args);
+            return {
+              content: [{
+                type: 'text',
+                text: JSON.stringify(result, null, 2)
+              }]
+            };
+          }
+
+          case 'bulk_people_enrichment': {
+            const payload = args as unknown as BulkPeopleEnrichmentPayload;
+            if (!payload?.requests) {
+              throw new McpError(ErrorCode.InvalidParams, 'requests array is required');
+            }
+            const result = await this.apollo.bulkPeopleEnrichment(payload);
             return {
               content: [{
                 type: 'text',
